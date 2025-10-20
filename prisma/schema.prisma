@@ -1,0 +1,106 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Department {
+  id        Int        @id @default(autoincrement())
+  name      String
+  sections  Section[]
+  operations Operation[]
+}
+
+model Section {
+  id            Int          @id @default(autoincrement())
+  name          String
+  department    Department   @relation(fields: [departmentId], references: [id])
+  departmentId  Int
+  operations    Operation[]
+  routeSteps    RouteCardStep[]
+  scheduleItems ScheduleItem[]
+}
+
+model Operation {
+  id                Int       @id @default(autoincrement())
+  department        Department @relation(fields: [departmentId], references: [id])
+  departmentId      Int
+  section           Section   @relation(fields: [sectionId], references: [id])
+  sectionId         Int
+  operationType     String
+  operationNumber   String
+  technology        String
+  defaultDurationMin Int
+  colorHex          String
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  steps             RouteCardStep[]
+}
+
+model RouteCard {
+  id                  Int              @id @default(autoincrement())
+  orderNumber         String
+  routeCardNumber     String
+  responsibleEngineer User            @relation(fields: [responsibleEngineerId], references: [id])
+  responsibleEngineerId Int
+  status              RouteCardStatus @default(DRAFT)
+  scheduled           Boolean         @default(false)
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+  steps               RouteCardStep[]
+  scheduleItems       ScheduleItem[]
+}
+
+enum RouteCardStatus {
+  DRAFT
+  APPROVED
+}
+
+model RouteCardStep {
+  id                  Int        @id @default(autoincrement())
+  routeCard           RouteCard  @relation(fields: [routeCardId], references: [id])
+  routeCardId         Int
+  department          Department @relation(fields: [departmentId], references: [id])
+  departmentId        Int
+  section             Section    @relation(fields: [sectionId], references: [id])
+  sectionId           Int
+  operation           Operation? @relation(fields: [operationId], references: [id])
+  operationId         Int?
+  operationType       String
+  operationNumber     String
+  technology          String
+  requiredDurationMin Int
+  scheduleItems       ScheduleItem[]
+}
+
+model ScheduleItem {
+  id              Int         @id @default(autoincrement())
+  routeCard       RouteCard   @relation(fields: [routeCardId], references: [id])
+  routeCardId     Int
+  routeCardStep   RouteCardStep @relation(fields: [routeCardStepId], references: [id])
+  routeCardStepId Int
+  section         Section     @relation(fields: [sectionId], references: [id])
+  sectionId       Int
+  startDateTime   DateTime
+  endDateTime     DateTime
+  @@unique([sectionId, startDateTime, endDateTime])
+}
+
+model User {
+  id           Int    @id @default(autoincrement())
+  name         String
+  role         Role
+  email        String  @unique
+  passwordHash String
+  routeCards   RouteCard[]
+}
+
+enum Role {
+  технолог
+  планировщик
+  мастер
+  администратор
+}
